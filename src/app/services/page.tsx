@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { ServicesPage } from "@/components/services/services-page";
+import { toFaqJsonLd, servicesFaqItems } from "@/lib/faq";
+import { generateBreadcrumbs } from "@/lib/generateBreadcrumbs";
+import { generateMetadata } from "@/lib/generateMetadata";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 type ServiceRow = {
@@ -14,17 +18,23 @@ type ServiceRow = {
   created_at?: string;
 };
 
-export const metadata: Metadata = {
-  title: "Services | abaay.tech",
+export const revalidate = 300;
+
+export const metadata: Metadata = generateMetadata({
+  title: "Software Development Services | abaay.tech",
+  absoluteTitle: true,
+  path: "/services",
+  image: "/opengraph-image",
   description:
-    "Custom web apps, ERP systems, and automation solutions for businesses worldwide.",
-  openGraph: {
-    title: "Services | abaay.tech",
-    description:
-      "Custom web apps, ERP systems, and automation solutions for businesses worldwide.",
-    images: ["/og-abaay.svg"],
-  },
-};
+    "Explore Abaay Tech services: custom web apps, ERP/CRM development, and automation solutions for growing businesses.",
+  keywords: [
+    "software development services",
+    "custom web app development",
+    "ERP implementation",
+    "business automation services",
+    "Abaay Tech services",
+  ],
+});
 
 async function getServices(): Promise<ServiceRow[]> {
   const supabase = getSupabaseServerClient();
@@ -42,5 +52,11 @@ async function getServices(): Promise<ServiceRow[]> {
 export default async function Services() {
   const services = await getServices();
 
-  return <ServicesPage services={services} />;
+  return (
+    <>
+      <JsonLd id="services-faq-schema" data={toFaqJsonLd(servicesFaqItems)} />
+      <JsonLd id="services-breadcrumbs" data={generateBreadcrumbs("/services")} />
+      <ServicesPage services={services} />
+    </>
+  );
 }

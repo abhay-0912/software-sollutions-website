@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { AboutPage } from "@/components/about/about-page";
+import { generateBreadcrumbs } from "@/lib/generateBreadcrumbs";
+import { generateMetadata } from "@/lib/generateMetadata";
 
-export const metadata: Metadata = {
-  title: "About Us | abaay.tech",
+export const metadata: Metadata = generateMetadata({
+  title: "About Abaay Tech | Software Team for Global Projects",
+  absoluteTitle: true,
+  path: "/about",
+  image: "/opengraph-image",
   description:
-    "Learn about Abaay Tech - a software solutions company building web apps, ERP systems, and automation tools for global clients.",
-  openGraph: {
-    title: "About Us | abaay.tech",
-    description:
-      "Learn about Abaay Tech - a software solutions company building web apps, ERP systems, and automation tools for global clients.",
-    images: ["/og-abaay.svg"],
-  },
-};
+    "Learn about Abaay Tech, our approach to building reliable software, and how we help global teams launch and scale products.",
+  keywords: ["about abaay tech", "software team India", "global software partner"],
+});
 
 // TODO: Enable team member data from Supabase when the `team_members` table is ready.
 // Example:
@@ -23,5 +24,10 @@ export const metadata: Metadata = {
 //   .order("order", { ascending: true });
 
 export default function AboutRoute() {
-  return <AboutPage />;
+  return (
+    <>
+      <JsonLd id="about-breadcrumbs" data={generateBreadcrumbs("/about")} />
+      <AboutPage />
+    </>
+  );
 }

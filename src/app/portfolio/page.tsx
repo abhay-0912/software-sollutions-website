@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { PortfolioPage } from "@/components/portfolio/portfolio-page";
+import { generateBreadcrumbs } from "@/lib/generateBreadcrumbs";
+import { generateMetadata } from "@/lib/generateMetadata";
 import {
   fallbackProjects,
   normalizeProject,
@@ -8,15 +11,21 @@ import {
 } from "@/lib/portfolio";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
-export const metadata: Metadata = {
-  title: "Portfolio | abaay.tech",
-  description: "See our work - custom web apps, ERP systems, and automation solutions.",
-  openGraph: {
-    title: "Portfolio | abaay.tech",
-    description: "See our work - custom web apps, ERP systems, and automation solutions.",
-    images: ["/og-abaay.svg"],
-  },
-};
+export const revalidate = 300;
+
+export const metadata: Metadata = generateMetadata({
+  title: "Portfolio & Case Studies | abaay.tech",
+  absoluteTitle: true,
+  path: "/portfolio",
+  image: "/portfolio/opengraph-image",
+  description: "Explore Abaay Tech case studies across web apps, ERP implementations, and automation products.",
+  keywords: [
+    "software case studies",
+    "ERP project portfolio",
+    "automation project examples",
+    "Abaay Tech portfolio",
+  ],
+});
 
 async function getPublishedProjects(): Promise<PortfolioProject[]> {
   const supabase = getSupabaseServerClient();
@@ -56,9 +65,12 @@ export default async function PortfolioRoute() {
   ]);
 
   return (
-    <PortfolioPage
-      projects={projects.length > 0 ? projects : fallbackProjects}
-      testimonials={testimonials}
-    />
+    <>
+      <JsonLd id="portfolio-breadcrumbs" data={generateBreadcrumbs("/portfolio")} />
+      <PortfolioPage
+        projects={projects.length > 0 ? projects : fallbackProjects}
+        testimonials={testimonials}
+      />
+    </>
   );
 }

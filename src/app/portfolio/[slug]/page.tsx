@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/JsonLd";
 import { PortfolioCaseStudyPage } from "@/components/portfolio/portfolio-case-study-page";
+import { generateBreadcrumbs } from "@/lib/generateBreadcrumbs";
+import { generateMetadata as buildMetadata } from "@/lib/generateMetadata";
+import { seoConfig } from "@/lib/seo.config";
 import {
   fallbackProjects,
   normalizeProject,
@@ -11,6 +15,8 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 type PageProps = {
   params: { slug: string };
 };
+
+export const revalidate = 300;
 
 async function getProjectBySlug(slug: string): Promise<PortfolioProject | null> {
   const supabase = getSupabaseServerClient();
@@ -99,21 +105,45 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const project = await getProjectBySlug(params.slug);
 
   if (!project) {
-    return {
+    return buildMetadata({
       title: "Portfolio Project | abaay.tech",
+      absoluteTitle: true,
       description: "Project details and outcomes from abaay.tech.",
-    };
+      noIndex: true,
+      path: `/portfolio/${params.slug}`,
+    });
   }
 
-  return {
-    title: `${project.title} | abaay.tech Portfolio`,
+  return buildMetadata({
+    title: `${project.title} | Portfolio Case Study`,
+    path: `/portfolio/${project.slug}`,
+    image: project.cover_image || "/portfolio/opengraph-image",
     description: project.description,
-    openGraph: {
-      title: `${project.title} | abaay.tech Portfolio`,
-      description: project.description,
-      images: [project.cover_image || "/og-abaay.svg"],
-    },
-  };
+    keywords: [
+      "portfolio case study",
+      project.title,
+      project.category,
+      "Abaay Tech",
+    ],
+  });
+}
+
+export async function generateStaticParams() {
+  const supabase = getSupabaseServerClient();
+
+  if (!supabase) {
+    return fallbackProjects.map((project) => ({ slug: project.slug }));
+  }
+
+  const { data } = await supabase.from("projects").select("slug").eq("published", true);
+  if (!data || data.length === 0) {
+    return fallbackProjects.map((project) => ({ slug: project.slug }));
+  }
+
+  return data
+    .map((row) => row.slug)
+    .filter((slug): slug is string => Boolean(slug?.trim()))
+    .map((slug) => ({ slug }));
 }
 
 export default async function PortfolioCaseStudyRoute({ params }: PageProps) {
@@ -128,11 +158,35 @@ export default async function PortfolioCaseStudyRoute({ params }: PageProps) {
     getNextProject(project.slug),
   ]);
 
+  const projectSchema = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: project.title,
+    description: project.description,
+    image: project.cover_image || `${seoConfig.siteUrl}/portfolio/opengraph-image`,
+    url: `${seoConfig.siteUrl}/portfolio/${project.slug}`,
+    genre: project.category,
+    creator: {
+      "@type": "Organization",
+      name: "Abaay Tech",
+      url: seoConfig.siteUrl,
+    },
+    about: project.industry || "Software Development",
+  };
+
+  const breadcrumbData = generateBreadcrumbs(`/portfolio/${project.slug}`, {
+    [project.slug]: project.title,
+  });
+
   return (
-    <PortfolioCaseStudyPage
-      project={project}
-      relatedProjects={relatedProjects}
-      nextProject={nextProject}
-    />
+    <>
+      <JsonLd id="portfolio-project-schema" data={projectSchema} />
+      <JsonLd id="portfolio-project-breadcrumbs" data={breadcrumbData} />
+      <PortfolioCaseStudyPage
+        project={project}
+        relatedProjects={relatedProjects}
+        nextProject={nextProject}
+      />
+    </>
   );
 }

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { HomePage } from "@/components/home/home-page";
+import { generateBreadcrumbs } from "@/lib/generateBreadcrumbs";
+import { generateMetadata } from "@/lib/generateMetadata";
+import { seoConfig } from "@/lib/seo.config";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 type ProjectRow = {
@@ -20,17 +24,23 @@ type TestimonialRow = {
   avatar_url: string | null;
 };
 
-export const metadata: Metadata = {
+export const revalidate = 120;
+
+export const metadata: Metadata = generateMetadata({
   title: "Abaay Tech | Custom Software Solutions for Global Teams",
+  absoluteTitle: true,
+  path: "/",
+  image: "/opengraph-image",
   description:
     "Abaay Tech builds custom web apps, ERP/CRM systems, and automation integrations for international businesses.",
-  openGraph: {
-    title: "Abaay Tech | Custom Software Solutions for Global Teams",
-    description:
-      "Custom web apps, ERP/CRM systems, and automation solutions built for ambitious teams worldwide.",
-    images: ["/og-abaay.svg"],
-  },
-};
+  keywords: [
+    "Abaay Tech",
+    "custom software development",
+    "Next.js development company",
+    "ERP development",
+    "automation agency",
+  ],
+});
 
 async function getFeaturedProjects(): Promise<ProjectRow[]> {
   const supabase = getSupabaseServerClient();
@@ -66,5 +76,28 @@ export default async function Home() {
     getVisibleTestimonials(),
   ]);
 
-  return <HomePage projects={projects} testimonials={testimonials} />;
+  const professionalServiceSchema = {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    name: "Abaay Tech",
+    url: seoConfig.siteUrl,
+    description:
+      "Custom web applications, ERP/CRM systems, and automation solutions for businesses worldwide.",
+    areaServed: "Worldwide",
+    telephone: "+91-0000000000",
+    email: "absrivastava999@gmail.com",
+    serviceType: [
+      "Custom Web Application Development",
+      "ERP and CRM Development",
+      "Automation and Integrations",
+    ],
+  };
+
+  return (
+    <>
+      <JsonLd id="home-service-schema" data={professionalServiceSchema} />
+      <JsonLd id="home-breadcrumbs" data={generateBreadcrumbs("/")} />
+      <HomePage projects={projects} testimonials={testimonials} />
+    </>
+  );
 }
